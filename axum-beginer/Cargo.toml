@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+  "hello-world",
+  "generate-random",
+]

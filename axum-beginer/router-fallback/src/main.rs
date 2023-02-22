@@ -1,7 +1,14 @@
-use std::{net::SocketAddr, collections::HashMap};
+use std::{collections::HashMap, net::SocketAddr};
 
-use axum::{extract::{Path, Query}, http, response::Html, routing::get, Router, Server, Json};
-use serde::{Serialize, Deserialize};
+use axum::{
+    extract::{Path, Query},
+    http::{self, StatusCode},
+    response::{Html, IntoResponse},
+    routing::get,
+    Json, Router, Server,
+};
+use base64::{engine::general_purpose, Engine};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 #[tokio::main]
@@ -13,7 +20,10 @@ async fn main() {
         .route("/echo-uri", get(echo_uri_handler))
         .route("/items", get(items_list_handler))
         .route("/items/:id", get(items_handler))
-        .route("/json", get(json_get).put(json_put))
+        .route("/demo/json", get(json_get).put(json_put))
+        .route("/demo/html", get(html_handler))
+        .route("/demo/status", get(demo_status_handler))
+        .route("/demo/image", get(image_handler))
         .route(
             "/allin",
             get(get_allin)
@@ -33,6 +43,18 @@ async fn main() {
         .unwrap();
 }
 
+async fn image_handler() -> impl IntoResponse {
+    let png = concat!(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB",
+        "CAYAAAAfFcSJAAAADUlEQVR42mPk+89Q",
+        "DwADvgGOSHzRgAAAAABJRU5ErkJggg=="
+    );
+    (
+        axum::response::AppendHeaders([(axum::http::header::CONTENT_TYPE, "image/png")]),
+        general_purpose::STANDARD.decode(png).unwrap(),
+    )
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 struct MyJsonObject {
     one: String,
@@ -45,6 +67,14 @@ async fn json_get() -> Json<Value> {
 
 async fn json_put(Json(data): Json<MyJsonObject>) -> String {
     format!("PUT demo JSON data: {:?}", data)
+}
+
+async fn demo_status_handler() -> (http::StatusCode, String) {
+    (http::StatusCode::OK, "Everything is ok".to_owned())
+}
+
+async fn html_handler() -> Html<&'static str> {
+    include_str!("../pages/hello.html").into()
 }
 
 async fn items_list_handler(Query(items): Query<HashMap<String, String>>) -> String {

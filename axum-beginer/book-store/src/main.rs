@@ -1,14 +1,22 @@
 mod book;
 mod data;
+mod response;
 
-use axum::{self, routing::get, Router, Json};
-use data::print_data;
+use std::net::SocketAddr;
+
+use axum::{self, routing::get, Router, Server};
 
 #[tokio::main]
 async fn main() {
-    Router::new().route("/books", get(list_books));
-}
+    let app = Router::new()
+        .route("/books", get(data::list_books))
+        .route("/books/:id", get(data::get_book));
 
-async fn list_books() -> Json<Vec<book::Book>> {
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    println!("listening on {addr}");
 
+    Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap()
 }
